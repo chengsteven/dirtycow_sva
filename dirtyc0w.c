@@ -119,13 +119,7 @@ You have to open with PROT_READ.
 You have to do it on two threads.
 */
   pthread_create(&pth1,NULL,madviseThread,argv[2]);
-  if (strcmp(argv[1], "string") == 0) {
-    printf("string\n");
-    pthread_create(&pth2,NULL,procselfmemThreadString,argv[3]);
-  } else {
-    printf("file\n");
-    pthread_create(&pth2,NULL,procselfmemThreadFile,argv[3]);
-  }
+  pthread_create(&pth2,NULL,procselfmemThread,argv[3]);
 /*
 You have to wait for the threads to finish.
 */
